@@ -1,0 +1,20 @@
+{
+  "name": "runwayjs",
+  "version": "0.1.0",
+  "author": "James Frasca <james@roundeights.com>",
+  "description": "Just the 'M' in MVC",
+  "license": "MIT",
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-jshint": "~0.10.0",
+    "grunt-contrib-uglify": "~0.4.0",
+    "grunt-contrib-watch": "~0.6.1",
+    "lodash": "~3.0.1",
+    "chai": "~1.10.0",
+    "mocha": "~2.1.0",
+    "grunt-mocha-test": "~0.12.7"
+  },
+  "scripts": {
+    "test": "grunt --verbose"
+  }
+}
