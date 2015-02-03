@@ -148,5 +148,25 @@ describe('Runway.Collection', function(){
         assert.deepEqual(list.toArray(), [ new Item() ]);
     });
 
+    it('should trigger events on sort and reverse', function(done) {
+        var finish = _.after(4, done);
+
+        var list = new Items([ { id: 1 }, { id: 4 }, { id: 2 } ]);
+
+        list.on('sort change', _.after(4, done));
+
+        list.reverse();
+        assert.deepEqual(
+            list.toArray(),
+            [ new Item({id: 2}), new Item({id: 4}), new Item({id: 1}) ]
+        );
+
+        list.sort(function (a, b) { return a.id - b.id; });
+        assert.deepEqual(
+            list.toArray(),
+            [ new Item({id: 1}), new Item({id: 2}), new Item({id: 4}) ]
+        );
+    });
+
 });
 

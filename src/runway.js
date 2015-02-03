@@ -199,6 +199,23 @@
         return Model;
     }
 
+    /** Returns a function that sorts and triggers an event */
+    function createSorter( func ) {
+        return function (compare) {
+            Array.prototype[func].call(this, compare);
+            this.trigger('sort change');
+        };
+    }
+
+    /** Returns a function that sorts and triggers an event */
+    function createRemover( func ) {
+        return function () {
+            var removed = Array.prototype[func].call(this);
+            this.trigger('remove change', removed);
+            return removed;
+        };
+    }
+
 
     /** The base class for defining a collection of models */
     function BaseCollection () {}
@@ -218,20 +235,6 @@
             this.push(value);
         },
 
-        /** Override to handle events */
-        pop: function () {
-            var popped = Array.prototype.pop.call(this);
-            this.trigger('remove change', popped);
-            return popped;
-        },
-
-        /** Override to handle events */
-        shift: function () {
-            var shifted = Array.prototype.shift.call(this);
-            this.trigger('remove change', shifted);
-            return shifted;
-        },
-
         /** Remove an element */
         remove: function (elem) {
             for (var i = this.indexOf(elem); i !== -1; i = this.indexOf(elem)) {
@@ -240,10 +243,24 @@
             }
         },
 
+        /** Override to handle events */
+        pop: createRemover('pop'),
+
+        /** Override to handle events */
+        shift: createRemover('shift'),
+
+        /** Override to handle events */
+        sort: createSorter('sort'),
+
+        /** Override to handle events */
+        reverse: createSorter('reverse'),
+
         // Splice is... complicated. Clear it out right now to simplify how
         // events need to be handled.
         splice: null
     });
+
+
 
 
     // Mix in a host of lodash functions
