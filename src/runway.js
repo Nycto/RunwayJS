@@ -251,6 +251,18 @@
         };
     }
 
+    /** Creates a push or unshift method */
+    function createAdder ( func ) {
+        return function (value) {
+            if ( this.__model && !(value instanceof this.__model) ) {
+                value = new this.__model(value);
+            }
+
+            Array.prototype[func].call(this, value);
+            this.trigger('add change', value);
+        };
+    }
+
 
     /* Start adding functions to the BaseCollection */
     BaseCollection.prototype = [];
@@ -265,9 +277,7 @@
         },
 
         /** Adds a value */
-        add: function (value) {
-            this.push(value);
-        },
+        add: createAdder('push'),
 
         /** Remove an element */
         remove: function (elem) {
@@ -278,7 +288,13 @@
         },
 
         /** Override to handle events */
+        push: createAdder('push'),
+
+        /** Override to handle events */
         pop: createRemover('pop'),
+
+        /** Override to handle events */
+        unshift: createAdder('unshift'),
 
         /** Override to handle events */
         shift: createRemover('shift'),
@@ -294,9 +310,6 @@
         splice: null
     });
 
-
-
-
     // Mix in a host of lodash functions
     _.forEach([ "findWhere" ], function (name) {
         BaseCollection.prototype[name] = function () {
@@ -305,21 +318,6 @@
         };
     });
 
-
-    /** Creates a push or unshift method */
-    function createAdder ( that, func, options ) {
-        Object.defineProperty(that, func, {
-            enumerable: false,
-            value: function (value) {
-                if ( options.model && !(value instanceof options.model) ) {
-                    value = new options.model(value);
-                }
-
-                Array.prototype[func].call(this, value);
-                this.trigger('add change', value);
-            }
-        });
-    }
 
     /** Defines a collection of models */
     function defineCollection ( options ) {
@@ -332,6 +330,13 @@
                 values = options.preprocess.apply(this, arguments);
             }
 
+            // Store the defined model so it can be referenced by add and push
+            if ( options.model ) {
+                Object.defineProperty(this, '__model', {
+                    enumerable: false,
+                    value: options.model
+                });
+            }
 
             // Monitor for changes to nested elements and bubble up events
             var triggerSubChange = _.bind(this.trigger, this, 'sub:change');
@@ -348,10 +353,6 @@
                 }
             });
 
-
-            // Override push and unshift to trigger events
-            createAdder(this, 'push', options);
-            createAdder(this, 'unshift', options);
 
             if ( options.initialize ) {
                 options.initialize.call(this);
