@@ -307,15 +307,18 @@
 
 
     /** Creates a push or unshift method */
-    function createAdder ( func, options ) {
-        return function (value) {
-            if ( options.model && !(value instanceof options.model) ) {
-                value = new options.model(value);
-            }
+    function createAdder ( that, func, options ) {
+        Object.defineProperty(that, func, {
+            enumerable: false,
+            value: function (value) {
+                if ( options.model && !(value instanceof options.model) ) {
+                    value = new options.model(value);
+                }
 
-            Array.prototype[func].call(this, value);
-            this.trigger('add change', value);
-        };
+                Array.prototype[func].call(this, value);
+                this.trigger('add change', value);
+            }
+        });
     }
 
     /** Defines a collection of models */
@@ -347,8 +350,8 @@
 
 
             // Override push and unshift to trigger events
-            this.push = createAdder('push', options);
-            this.unshift = createAdder('unshift', options);
+            createAdder(this, 'push', options);
+            createAdder(this, 'unshift', options);
 
             if ( options.initialize ) {
                 options.initialize.call(this);
