@@ -79,7 +79,7 @@
     }
 
     /** Returns the event map for an object, or adds one */
-    function eventMap (that) {
+    function getEventMap (that) {
         if ( !that.hasOwnProperty('__events') ) {
             Object.defineProperty(that, '__events', {
                 enumerable: false,
@@ -90,11 +90,11 @@
         return that.__events;
     }
 
-    /** Splits an incoming event into multiple events */
+    /** Splits an incoming event into multiple events before delegating */
     function prepEventHandler( inner ) {
         return function (events) {
             var args = [].slice.call(arguments, 1);
-            args.unshift( eventMap(this) );
+            args.unshift( getEventMap(this) );
             args.unshift( null );
 
             var eachEvent = events.split(' ');
@@ -105,7 +105,7 @@
         };
     }
 
-    /** Adds event support to a class definition */
+    /** Adds event support to a an object */
     function eventify( obj ) {
 
         /** Triggers a change event for this model */
@@ -147,7 +147,7 @@
 
 
     /** Binds a property to 'this' and sets up watches */
-    var defineProperty = function defineProperty(value, key) {
+    var setProperty = function setProperty(value, key) {
 
         if ( this.hasOwnProperty(key) ) {
             return;
@@ -199,15 +199,6 @@
     /* Start adding functions to the BaseModel */
     eventify( BaseModel.prototype );
 
-    BaseModel.prototype.set = function (key, value) {
-        this[key] = value;
-    };
-
-    BaseModel.prototype.get = function (key) {
-        return this[key];
-    };
-
-
     /** Configures a new model */
     function defineModel (options) {
         options = options || {};
@@ -219,8 +210,8 @@
                 values = options.preprocess.apply(this, arguments);
             }
 
-            _.each(values, defineProperty, this);
-            _.each(options.defaults, defineProperty, this);
+            _.each(values, setProperty, this);
+            _.each(options.defaults, setProperty, this);
 
             if ( options.initialize ) {
                 options.initialize.call(this);
@@ -233,6 +224,13 @@
 
         return Model;
     }
+
+
+
+    /* Start adding functions to the BaseCollection */
+    BaseCollection.prototype = [];
+
+    eventify( BaseCollection.prototype );
 
     /** Returns a function that sorts and triggers an event */
     function createSorter( func ) {
@@ -263,26 +261,19 @@
         };
     }
 
-
-    /* Start adding functions to the BaseCollection */
-    BaseCollection.prototype = [];
-
-    eventify( BaseCollection.prototype );
-
     _.extend(BaseCollection.prototype, {
 
         /** Converts this object to an array */
-        toArray: function () {
-            return Array.prototype.slice.call(this);
-        },
+        toArray: [].slice,
 
         /** Adds a value */
         add: createAdder('push'),
 
         /** Remove an element */
         remove: function (elem) {
-            for (var i = this.indexOf(elem); i !== -1; i = this.indexOf(elem)) {
-                Array.prototype.splice.call(this, i, 1);
+            var index;
+            while ( -1 !== (index = this.indexOf(elem)) ) {
+                [].splice.call(this, index, 1);
                 this.trigger('remove change', elem);
             }
         },
