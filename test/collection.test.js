@@ -179,5 +179,40 @@ describe('Runway.Collection', function(){
         assert.deepEqual( ls.toArray(), [ 2, 6, 12 ] );
     });
 
+
+    it('should bubble up change events from models', function(done) {
+        var ItemsItems = runway.collection({ model: Items })
+
+        var inner = new Item({ id: 50 });
+        var middle = new Items([ inner ]);
+        var outer = new ItemsItems();
+        outer.add( middle );
+
+        outer.on('sub:change', function (value, data) {
+            assert.strictEqual(this, outer);
+            assert.equal(value, 100);
+            assert.deepEqual(data, { old: 50, key: 'id' });
+            done();
+        });
+
+        inner.id = 100;
+    });
+
+    it('should stop bubbling when a value is removed', function() {
+        var ItemsItems = runway.collection({ model: Items })
+
+        var inner = new Item({ id: 50, wakka: 123 });
+        var middle = new Items([ inner ]);
+        var outer = new ItemsItems([ middle ]);
+
+        middle.remove( inner );
+
+        outer.on('sub:change', function () {
+            assert.fail("Should not be executed");
+        });
+
+        inner.id = 100;
+    });
+
 });
 

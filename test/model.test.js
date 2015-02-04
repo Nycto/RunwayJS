@@ -65,5 +65,54 @@ describe('Runway.Model', function(){
         assert.equal(3, item.three);
     });
 
+    it('should bubble up change events from internal models', function(done) {
+        var Item = runway.model();
+
+        var inner = new Item({ id: 1 });
+        var middle = new Item({ inside: inner });
+        var outer = new Item({ inside: middle });
+
+        outer.on('sub:change', function (value, data) {
+            assert.strictEqual(this, outer);
+            assert.equal(value, 2);
+            assert.deepEqual(data, { old: 1, key: 'id' });
+            done();
+        });
+
+        inner.id = 2;
+    });
+
+    it('should not bubble when a value is unset', function() {
+        var Item = runway.model();
+
+        var inner = new Item({ id: 1 });
+        var middle = new Item({ inside: inner });
+        var outer = new Item({ inside: middle });
+
+        outer.on('sub:change', function () {
+            assert.fail("Should not be executed");
+        });
+
+        outer.inside = null;
+        inner.id = 2;
+    });
+
+    it('should bubble up change events from collections', function(done) {
+        var Item = runway.model();
+        var List = runway.collection();
+
+        var inner = new List();
+        var middle = new Item({ inside: inner });
+        var outer = new Item({ inside: middle });
+
+        outer.on('sub:change', function (value) {
+            assert.strictEqual(this, outer);
+            assert.equal(value, "test");
+            done();
+        });
+
+        inner.add("test");
+    });
+
 });
 

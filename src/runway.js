@@ -34,6 +34,20 @@
 }(function (_) {
     "use strict";
 
+
+    /** The base class for all models */
+    function BaseModel() {}
+
+    /** The base class for defining a collection of models */
+    function BaseCollection () {}
+
+
+    /** Whether an object is a model or collection */
+    function isModelOrCollection ( obj ) {
+        return obj instanceof BaseModel || obj instanceof BaseCollection;
+    }
+
+
     /**
      * A difficult-to-believe, but optimized internal dispatch function for
      * triggering events. Tries to keep the usual cases speedy. This function
@@ -134,8 +148,16 @@
 
     /** Binds a property to 'this' and sets up watches */
     var defineProperty = function defineProperty(value, key) {
+
         if ( this.hasOwnProperty(key) ) {
             return;
+        }
+
+        // Triggers an event when a nested value changes
+        var triggerChange = _.bind(this.trigger, this, 'sub:change');
+
+        if ( isModelOrCollection(value) ) {
+            value.on('change sub:change', triggerChange);
         }
 
         Object.defineProperty(this, key, {
@@ -144,8 +166,18 @@
             set: function ( newValue ) {
                 var oldValue = value;
                 value = newValue;
+
+                if ( isModelOrCollection(oldValue) ) {
+                    oldValue.off('change sub:change', triggerChange);
+                }
+
                 this.trigger(
-                    'change:' + key, value, { old: oldValue, key: key });
+                    'change:' + key, value, { old: oldValue, key: key }
+                );
+
+                if ( isModelOrCollection(newValue) ) {
+                    newValue.on('change sub:change', triggerChange);
+                }
             },
             get: function () {
                 return value;
@@ -164,8 +196,7 @@
     }
 
 
-    /** The base class for all models */
-    function BaseModel() {}
+    /* Start adding functions to the BaseModel */
     eventify( BaseModel.prototype );
 
     BaseModel.prototype.set = function (key, value) {
@@ -221,8 +252,7 @@
     }
 
 
-    /** The base class for defining a collection of models */
-    function BaseCollection () {}
+    /* Start adding functions to the BaseCollection */
     BaseCollection.prototype = [];
 
     eventify( BaseCollection.prototype );
@@ -298,6 +328,23 @@
             if ( options.preprocess ) {
                 values = options.preprocess.apply(this, arguments);
             }
+
+
+            // Monitor for changes to nested elements and bubble up events
+            var triggerSubChange = _.bind(this.trigger, this, 'sub:change');
+
+            this.on('add', function (elem) {
+                if ( isModelOrCollection(elem) ) {
+                    elem.on('change sub:change', triggerSubChange);
+                }
+            });
+
+            this.on('remove', function (elem) {
+                if ( isModelOrCollection(elem) ) {
+                    elem.off('change sub:change', triggerSubChange);
+                }
+            });
+
 
             // Override push and unshift to trigger events
             this.push = createAdder('push', options);
