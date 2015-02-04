@@ -168,5 +168,16 @@ describe('Runway.Collection', function(){
         );
     });
 
+    it('should allow constructor args to be preprocessed', function() {
+        var List = runway.collection({
+            preprocess: function (one, two, three) {
+                return [ one * 2, two * 3, three * 4 ];
+            }
+        });
+
+        var ls = new List(1, 2, 3);
+        assert.deepEqual( ls.toArray(), [ 2, 6, 12 ] );
+    });
+
 });
 

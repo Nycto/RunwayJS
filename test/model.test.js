@@ -52,6 +52,18 @@ describe('Runway.Model', function(){
         elem.id = 3.14;
     });
 
-});
+    it('should allow constructor args to be preprocessed', function() {
+        var Item = runway.model({
+            preprocess: function (one, two, three) {
+                return { one: one, two: two, three: three };
+            }
+        });
 
+        var item = new Item(1, 2, 3);
+        assert.equal(1, item.one);
+        assert.equal(2, item.two);
+        assert.equal(3, item.three);
+    });
+
+});
 

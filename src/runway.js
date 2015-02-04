@@ -184,6 +184,10 @@
         /** Constructor for the specific model */
         function Model (values) {
 
+            if ( options.preprocess ) {
+                values = options.preprocess.apply(this, arguments);
+            }
+
             _.each(values, defineProperty, this);
             _.each(options.defaults, defineProperty, this);
 
@@ -290,6 +294,10 @@
 
         /** Constructor for the specific model */
         function Collection(values) {
+
+            if ( options.preprocess ) {
+                values = options.preprocess.apply(this, arguments);
+            }
 
             // Override push and unshift to trigger events
             this.push = createAdder('push', options);
