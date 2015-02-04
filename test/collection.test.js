@@ -214,5 +214,65 @@ describe('Runway.Collection', function(){
         inner.id = 100;
     });
 
+    it('should stop bubbling when a value is removed', function(done) {
+        var finish = _.after(5, done);
+
+        var list = new Items([ { id: 50 }, { id: 60 }, { id: 70 } ]);
+
+        list.eachAndAdded(function (item) {
+            assert.isTrue( item instanceof Item );
+            finish();
+        });
+
+        list.add({ id: 80 });
+        list.add({ id: 90 });
+    });
+
+    it('should trigger a removed event on removed objects', function(done) {
+
+        var toRemove = new Item({ id: 'abc' });
+        var list = new Items([ toRemove ]);
+
+        toRemove.on('removed', function (value) {
+            assert.strictEqual(value, list);
+            done();
+        });
+
+        list.remove(toRemove);
+    });
+
+    it('should trigger a removed event on popped and shifted objects',
+        function(done) {
+
+            var finish = _.after(2, done);
+
+            var toRemove = new Item({ id: 'abc' });
+            var list = new Items([ toRemove, toRemove ]);
+
+            toRemove.on('removed', function (value) {
+                assert.strictEqual(value, list);
+                finish();
+            });
+
+            list.pop();
+            list.shift();
+        }
+    );
+
+    it('should not trigger a removed event on objects not actually removed',
+        function() {
+
+            var toRemove = new Item({ id: 'abc' });
+
+            var list = new Items([ {}, {} ]);
+
+            toRemove.on('removed', function (value) {
+                assert.fail('Should not be called');
+            });
+
+            list.remove( new Item({ id: 'abc' }) );
+            assert.equal(list.length, 2);
+        }
+    );
 });
 

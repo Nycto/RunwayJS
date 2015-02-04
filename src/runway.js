@@ -245,6 +245,11 @@
         return function () {
             var removed = Array.prototype[func].call(this);
             this.trigger('remove change', removed);
+
+            if ( isModelOrCollection(removed) ) {
+                removed.trigger('removed', this);
+            }
+
             return removed;
         };
     }
@@ -271,10 +276,16 @@
 
         /** Remove an element */
         remove: function (elem) {
+            var removed = false;
             var index;
             while ( -1 !== (index = this.indexOf(elem)) ) {
                 [].splice.call(this, index, 1);
+                removed = true;
                 this.trigger('remove change', elem);
+            }
+
+            if ( removed && isModelOrCollection(elem) ) {
+                elem.trigger('removed', this);
             }
         },
 
@@ -298,7 +309,13 @@
 
         // Splice is... complicated. Clear it out right now to simplify how
         // events need to be handled.
-        splice: null
+        splice: null,
+
+        /** Applies a callback to */
+        eachAndAdded: function (callback) {
+            _.each(this, callback);
+            this.on('add', callback);
+        }
     });
 
     // Mix in a host of lodash functions
