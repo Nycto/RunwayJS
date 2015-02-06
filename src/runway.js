@@ -17,22 +17,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-(function (factory) {
+(function () {
     /*globals define, window, module */
     "use strict";
 
-    if ( typeof define === 'function' && define.amd ) {
-        define("runway", factory);
-    }
-    else if ( module !== undefined && module.exports ) {
-        module.exports = factory();
-    }
-    else {
-        window.runway = factory();
-    }
-
-}(function () {
-    "use strict";
 
     /** The base class for all models */
     function BaseModel() {}
@@ -393,10 +381,21 @@
         return Collection;
     }
 
-    return {
+    var runway = {
         model: defineModel,
         collection: defineCollection,
         eventify: eventify
     };
 
-}));
+    /** Export the public interface */
+    if ( typeof define === 'function' && define.amd ) {
+        define("runway", runway);
+    }
+    else if ( module !== undefined && module.exports ) {
+        module.exports = runway;
+    }
+    else {
+        window.runway = runway;
+    }
+
+}());
