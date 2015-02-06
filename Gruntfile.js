@@ -59,7 +59,13 @@ module.exports = function(grunt) {
 
         watch: {
             files: ['<%= jshint.files %>', '<%= mochaTest.test.src %>'],
-            tasks: ['jshint', 'mochaTest']
+            tasks: ['jshint', 'mochaTest', 'bytesize']
+        },
+
+        bytesize: {
+            all: {
+                src: ['build/*.js']
+            }
         }
     });
 
@@ -68,8 +74,10 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-mocha-test');
+    grunt.loadNpmTasks('grunt-bytesize');
 
     // Default task(s).
-    grunt.registerTask('default', ['jshint', 'mochaTest', 'uglify']);
+    grunt.registerTask('default',
+        ['jshint', 'mochaTest', 'uglify', 'bytesize']);
 };
 
