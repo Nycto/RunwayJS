@@ -18,22 +18,21 @@
  * SOFTWARE.
  */
 (function (factory) {
-    /*globals define, window, module, require */
+    /*globals define, window, module */
     "use strict";
 
     if ( typeof define === 'function' && define.amd ) {
-        define("runway", ["lodash"], factory);
+        define("runway", factory);
     }
     else if ( module !== undefined && module.exports ) {
-        module.exports = factory( require("lodash") );
+        module.exports = factory();
     }
     else {
-        window.runway = factory(window._);
+        window.runway = factory();
     }
 
-}(function (_) {
+}(function () {
     "use strict";
-
 
     /** The base class for all models */
     function BaseModel() {}
@@ -41,10 +40,26 @@
     /** The base class for defining a collection of models */
     function BaseCollection () {}
 
-
     /** Whether an object is a model or collection */
     function isModelOrCollection ( obj ) {
         return obj instanceof BaseModel || obj instanceof BaseCollection;
+    }
+
+
+    /** Iterates over the keys in an object */
+    function eachObject(obj, callback, bind) {
+        for ( var key in obj ) {
+            if ( obj.hasOwnProperty(key) ) {
+                callback.call(bind, obj[key], key);
+            }
+        }
+    }
+
+    /** Extends an object with values from another object */
+    function extend(onto, source) {
+        eachObject(source, function (value, key) {
+            onto[key] = value;
+        });
     }
 
 
@@ -105,11 +120,12 @@
         };
     }
 
-    /** Adds event support to a an object */
-    function eventify( obj ) {
+
+    /** Functions to for triggering and observing events */
+    var eventInterface = {
 
         /** Triggers a change event for this model */
-        obj.trigger = prepEventHandler(function trigger ( event, map ) {
+        trigger: prepEventHandler(function trigger ( event, map ) {
             var args = [].slice.call(arguments, 2);
 
             var parts = event.split(":");
@@ -120,47 +136,55 @@
                 }
                 parts.pop();
             }
-        });
+        }),
 
         /** Subscribes to an event on this model */
-        obj.on = prepEventHandler(function on ( event, map, callback ) {
+        on: prepEventHandler(function on ( event, map, callback ) {
             if ( !map[event] ) {
                 map[event] = [ callback ];
             }
             else {
                 map[event].push(callback);
             }
-        });
+        }),
 
         /** Unsubscribes to an event on this model */
-        obj.off = prepEventHandler(function off (  event, map, callback ) {
+        off: prepEventHandler(function off ( event, map, callback ) {
             if ( map[event] ) {
-                map[event] = _.reject(
-                    map[event],
-                    _.partial(_.isEqual, callback)
-                );
+                for ( var i = 0; i < map[event].length; ) {
+                    if ( map[event][i] === callback ) {
+                        map[event].splice(i, 1);
+                    }
+                    else {
+                        i++;
+                    }
+                }
             }
-        });
+        })
+    };
 
+    /** Adds event support to a an object */
+    function eventify( obj ) {
+        extend(obj, eventInterface);
         return obj;
     }
 
 
     /** Binds a property to 'this' and sets up watches */
-    var setProperty = function setProperty(value, key) {
+    function setProperty(that, value, key) {
 
-        if ( this.hasOwnProperty(key) ) {
+        if ( that.hasOwnProperty(key) ) {
             return;
         }
 
         // Triggers an event when a nested value changes
-        var triggerChange = _.bind(this.trigger, this, 'sub:change');
+        var triggerChange = that.trigger.bind(that, 'sub:change');
 
         if ( isModelOrCollection(value) ) {
             value.on('change sub:change', triggerChange);
         }
 
-        Object.defineProperty(this, key, {
+        Object.defineProperty(that, key, {
             enumerable: true,
             configurable: false,
             set: function ( newValue ) {
@@ -171,7 +195,7 @@
                     oldValue.off('change sub:change', triggerChange);
                 }
 
-                this.trigger(
+                that.trigger(
                     'change:' + key, value, { old: oldValue, key: key }
                 );
 
@@ -183,12 +207,12 @@
                 return value;
             }
         });
-    };
+    }
 
 
     /** Given a hash of options, adds any functions to an object */
     function addFunctions(options, clazz) {
-        _.each(options, function (value, key) {
+        eachObject(options, function (value, key) {
             if ( typeof value === 'function' && key !== 'initialize' ) {
                 clazz.prototype[key] = value;
             }
@@ -210,8 +234,8 @@
                 values = options.preprocess.apply(this, arguments);
             }
 
-            _.each(values, setProperty, this);
-            _.each(options.defaults, setProperty, this);
+            eachObject(values, setProperty.bind(null, this));
+            eachObject(options.defaults, setProperty.bind(null, this));
 
             if ( options.initialize ) {
                 options.initialize.call(this);
@@ -266,7 +290,7 @@
         };
     }
 
-    _.extend(BaseCollection.prototype, {
+    extend(BaseCollection.prototype, {
 
         /** Converts this object to an array */
         toArray: [].slice,
@@ -313,17 +337,10 @@
 
         /** Applies a callback to */
         eachAndAdded: function (callback) {
-            _.each(this, callback);
+            this.forEach(callback, this);
             this.on('add', callback);
         }
-    });
 
-    // Mix in a host of lodash functions
-    _.forEach([ "findWhere" ], function (name) {
-        BaseCollection.prototype[name] = function () {
-            var iface = _(this);
-            return iface[name].apply(iface, arguments);
-        };
     });
 
 
@@ -347,7 +364,7 @@
             }
 
             // Monitor for changes to nested elements and bubble up events
-            var triggerSubChange = _.bind(this.trigger, this, 'sub:change');
+            var triggerSubChange = this.trigger.bind(this, 'sub:change');
 
             this.on('add', function (elem) {
                 if ( isModelOrCollection(elem) ) {
@@ -366,7 +383,7 @@
                 options.initialize.call(this);
             }
 
-            _.each(values, this.push, this);
+            (values || []).forEach(this.push, this);
         }
 
         Collection.prototype = new BaseCollection();
