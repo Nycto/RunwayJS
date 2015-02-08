@@ -394,7 +394,8 @@
     var runway = {
         model: defineModel,
         collection: defineCollection,
-        eventify: eventify
+        eventify: eventify,
+        is: isModelOrCollection
     };
 
     /** Export the public interface */
