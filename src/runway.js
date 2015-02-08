@@ -175,6 +175,10 @@
             enumerable: true,
             configurable: false,
             set: function ( newValue ) {
+                if ( newValue === value ) {
+                    return;
+                }
+
                 var oldValue = value;
                 value = newValue;
 

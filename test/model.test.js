@@ -114,5 +114,16 @@ describe('Runway.Model', function(){
         inner.add("test");
     });
 
+    it('shouldnt trigger events when a set value is the same', function() {
+        var Item = runway.model();
+        var elem = new Item({ id: 3.1415 });
+
+        elem.on('change change:id', function () {
+            assert.fail("Should not be triggered");
+        });
+
+        elem.id = 3.1415;
+    });
+
 });
 
