@@ -43,10 +43,26 @@
     }
 
     /** Extends an object with values from another object */
-    function extend(onto, source) {
+    function extend(source, onto, iff) {
         eachObject(source, function (value, key) {
-            onto[key] = value;
+            if ( !iff || iff(key, value) ) {
+                onto[key] = value;
+            }
         });
+        return onto;
+    }
+
+    /** Returns whether a function should be added to a class prototype */
+    function isClassMethod(key, value) {
+        return typeof value === 'function' && key !== 'initialize';
+    }
+
+    /** Partially applies arguments to a function */
+    function partial( func ) {
+        var args = [].slice.call(arguments, 1);
+        return function () {
+            return func.apply(this, args.concat([].slice.call(arguments)));
+        };
     }
 
 
@@ -59,7 +75,7 @@
         var i = -1;
         var len = callbacks.length;
 
-        var a1 = args[0], a2 = args[1], a3 = args[2];
+        var a1 = args[0], a2 = args[1];
 
         switch (args.length) {
             case 0:
@@ -71,48 +87,39 @@
             case 2:
                 while (++i < len) { callbacks[i].call(bind, a1, a2); }
                 return;
-            case 3:
-                while (++i < len) { callbacks[i].call(bind, a1, a2, a3); }
-                return;
             default:
                 while (++i < len) { callbacks[i].apply(bind, args); }
                 return;
         }
     }
 
-    /** Returns the event map for an object, or adds one */
-    function getEventMap (that) {
-        if ( !that.hasOwnProperty('__events') ) {
-            Object.defineProperty(that, '__events', {
+    /** Splits an incoming event into multiple events before delegating */
+    function splitEvents( inner, events ) {
+        /*jshint validthis:true */
+
+        // Create a map of events on this object
+        if ( !this.hasOwnProperty('__events') ) {
+            Object.defineProperty(this, '__events', {
                 enumerable: false,
-                writeable: false,
                 value: {}
             });
         }
-        return that.__events;
+
+        var args = [].slice.call(arguments, 2);
+        args.unshift( this.__events );
+        args.unshift( null );
+
+        events.split(' ').forEach(function (event) {
+            args[0] = event;
+            inner.apply(this, args);
+        }, this);
     }
 
-    /** Splits an incoming event into multiple events before delegating */
-    function prepEventHandler( inner ) {
-        return function (events) {
-            var args = [].slice.call(arguments, 1);
-            args.unshift( getEventMap(this) );
-            args.unshift( null );
-
-            var eachEvent = events.split(' ');
-            for ( var i = 0; i < eachEvent.length; i++ ) {
-                args[0] = eachEvent[i];
-                inner.apply(this, args);
-            }
-        };
-    }
-
-
-    /** Functions to for triggering and observing events */
-    var eventInterface = {
+    /** Adds event support to a an object */
+    var eventify = partial(extend, {
 
         /** Triggers a change event for this model */
-        trigger: prepEventHandler(function trigger ( event, map ) {
+        trigger: partial(splitEvents, function trigger ( event, map ) {
             var args = [].slice.call(arguments, 2);
 
             var parts = event.split(":");
@@ -126,7 +133,7 @@
         }),
 
         /** Subscribes to an event on this model */
-        on: prepEventHandler(function on ( event, map, callback ) {
+        on: partial(splitEvents, function on ( event, map, callback ) {
             if ( !map[event] ) {
                 map[event] = [ callback ];
             }
@@ -136,7 +143,7 @@
         }),
 
         /** Unsubscribes to an event on this model */
-        off: prepEventHandler(function off ( event, map, callback ) {
+        off: partial(splitEvents, function off ( event, map, callback ) {
             if ( map[event] ) {
                 for ( var i = 0; i < map[event].length; ) {
                     if ( map[event][i] === callback ) {
@@ -148,30 +155,25 @@
                 }
             }
         })
-    };
-
-    /** Adds event support to a an object */
-    function eventify( obj ) {
-        extend(obj, eventInterface);
-        return obj;
-    }
+    });
 
 
     /** Binds a property to 'this' and sets up watches */
-    function setProperty(that, value, key) {
+    function setProperty(value, key) {
+        /*jshint validthis:true */
 
-        if ( that.hasOwnProperty(key) ) {
+        if ( this.hasOwnProperty(key) ) {
             return;
         }
 
         // Triggers an event when a nested value changes
-        var triggerChange = that.trigger.bind(that, 'sub:change');
+        var triggerChange = this.trigger.bind(this, 'sub:change');
 
         if ( isModelOrCollection(value) ) {
             value.on('change sub:change', triggerChange);
         }
 
-        Object.defineProperty(that, key, {
+        Object.defineProperty(this, key, {
             enumerable: true,
             configurable: false,
             set: function ( newValue ) {
@@ -186,7 +188,7 @@
                     oldValue.off('change sub:change', triggerChange);
                 }
 
-                that.trigger(
+                this.trigger(
                     'change:' + key, value, { old: oldValue, key: key }
                 );
 
@@ -196,16 +198,6 @@
             },
             get: function () {
                 return value;
-            }
-        });
-    }
-
-
-    /** Given a hash of options, adds any functions to an object */
-    function addFunctions(options, clazz) {
-        eachObject(options, function (value, key) {
-            if ( typeof value === 'function' && key !== 'initialize' ) {
-                clazz.prototype[key] = value;
             }
         });
     }
@@ -225,8 +217,8 @@
                 values = options.preprocess.apply(this, arguments);
             }
 
-            eachObject(values, setProperty.bind(null, this));
-            eachObject(options.defaults, setProperty.bind(null, this));
+            eachObject(values, setProperty, this);
+            eachObject(options.defaults, setProperty, this);
 
             if ( options.initialize ) {
                 options.initialize.call(this);
@@ -235,7 +227,7 @@
 
         Model.prototype = new BaseModel();
 
-        addFunctions(options, Model);
+        extend(options, Model.prototype, isClassMethod);
 
         return Model;
     }
@@ -248,46 +240,43 @@
     eventify( BaseCollection.prototype );
 
     /** Returns a function that sorts and triggers an event */
-    function createSorter( func ) {
-        return function (compare) {
-            Array.prototype[func].call(this, compare);
-            this.trigger('sort change');
-        };
+    function sorter( func, compare ) {
+        /*jshint validthis:true */
+        Array.prototype[func].call(this, compare);
+        this.trigger('sort change');
     }
 
     /** Returns a function that sorts and triggers an event */
-    function createRemover( func ) {
-        return function () {
-            var removed = Array.prototype[func].call(this);
-            this.trigger('remove change', removed);
+    function remover( func ) {
+        /*jshint validthis:true */
+        var removed = Array.prototype[func].call(this);
+        this.trigger('remove change', removed);
 
-            if ( isModelOrCollection(removed) ) {
-                removed.trigger('removed', this);
-            }
+        if ( isModelOrCollection(removed) ) {
+            removed.trigger('removed', this);
+        }
 
-            return removed;
-        };
+        return removed;
     }
 
     /** Creates a push or unshift method */
-    function createAdder ( func ) {
-        return function (value) {
-            if ( this.__model && !(value instanceof this.__model) ) {
-                value = new this.__model(value);
-            }
+    function adder ( func, value ) {
+        /*jshint validthis:true */
+        if ( this.__model && !(value instanceof this.__model) ) {
+            value = new this.__model(value);
+        }
 
-            Array.prototype[func].call(this, value);
-            this.trigger('add change', value);
-        };
+        Array.prototype[func].call(this, value);
+        this.trigger('add change', value);
     }
 
-    extend(BaseCollection.prototype, {
+    extend({
 
         /** Converts this object to an array */
         toArray: [].slice,
 
         /** Adds a value */
-        add: createAdder('push'),
+        add: partial(adder, 'push'),
 
         /** Remove an element */
         remove: function (elem) {
@@ -305,22 +294,22 @@
         },
 
         /** Override to handle events */
-        push: createAdder('push'),
+        push: partial(adder, 'push'),
 
         /** Override to handle events */
-        pop: createRemover('pop'),
+        pop: partial(remover, 'pop'),
 
         /** Override to handle events */
-        unshift: createAdder('unshift'),
+        unshift: partial(adder, 'unshift'),
 
         /** Override to handle events */
-        shift: createRemover('shift'),
+        shift: partial(remover, 'shift'),
 
         /** Override to handle events */
-        sort: createSorter('sort'),
+        sort: partial(sorter, 'sort'),
 
         /** Override to handle events */
-        reverse: createSorter('reverse'),
+        reverse: partial(sorter, 'reverse'),
 
         // Splice is... complicated. Clear it out right now to simplify how
         // events need to be handled.
@@ -331,8 +320,7 @@
             this.forEach(callback, this);
             this.on('add', callback);
         }
-
-    });
+    }, BaseCollection.prototype);
 
 
     /** Defines a collection of models */
@@ -379,7 +367,7 @@
 
         Collection.prototype = new BaseCollection();
 
-        addFunctions(options, Collection);
+        extend(options, Collection.prototype, isClassMethod);
 
         return Collection;
     }
