@@ -60,7 +60,7 @@ module.exports = function(grunt) {
 
         watch: {
             files: ['<%= jshint.files %>', '<%= mochaTest.test.src %>'],
-            tasks: ['jshint', 'mochaTest', 'bytesize']
+            tasks: ['jshint', 'mochaTest', 'uglify', 'bytesize']
         },
 
         bytesize: {
