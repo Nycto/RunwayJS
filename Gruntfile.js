@@ -10,6 +10,7 @@ module.exports = function(grunt) {
         jshint: {
             files: ['Gruntfile.js', 'src/**/*.js'],
             options: {
+                globals: { define: true, exports: true, module: true },
                 bitwise: true,
                 camelcase: true,
                 curly: true,

@@ -17,8 +17,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-(function () {
-    /*globals define, window, module */
+(function (root) {
     "use strict";
 
 
@@ -391,11 +390,11 @@
     if ( typeof define === 'function' && define.amd ) {
         define("runway", runway);
     }
-    else if ( module !== undefined && module.exports ) {
+    else if (typeof exports === 'object') {
         module.exports = runway;
     }
     else {
-        window.runway = runway;
+        root.runway = runway;
     }
 
-}());
+}(this));
