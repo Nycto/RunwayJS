@@ -102,7 +102,7 @@ describe('Runway.Collection', function(){
 
         var list = new Items([ {}, toRemove, toRemove, {} ]);
 
-        var finish = _.after(4, done);
+        var finish = _.after(2, done);
 
         list.on('remove change', function (removed) {
             assert.strictEqual(toRemove, removed);

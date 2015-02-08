@@ -65,6 +65,17 @@
         };
     }
 
+    /** Removes a value from an array in place */
+    function removeFromArray( array, value ) {
+        var removed = false;
+        var index;
+        while ( -1 !== (index = array.indexOf(value)) ) {
+            [].splice.call( array, index, 1 );
+            removed = true;
+        }
+        return removed;
+    }
+
 
     /**
      * A difficult-to-believe, but optimized internal dispatch function for
@@ -144,16 +155,7 @@
 
         /** Unsubscribes to an event on this model */
         off: partial(splitEvents, function off ( event, map, callback ) {
-            if ( map[event] ) {
-                for ( var i = 0; i < map[event].length; ) {
-                    if ( map[event][i] === callback ) {
-                        map[event].splice(i, 1);
-                    }
-                    else {
-                        i++;
-                    }
-                }
-            }
+            removeFromArray( map[event] || [], callback );
         })
     });
 
@@ -276,11 +278,7 @@
 
         /** Remove an element */
         remove: function (elem) {
-            var removed = false;
-            var index;
-            while ( -1 !== (index = this.indexOf(elem)) ) {
-                [].splice.call(this, index, 1);
-                removed = true;
+            if ( removeFromArray(this, elem) ) {
                 this.trigger('remove change', elem);
             }
         },
