@@ -252,10 +252,6 @@
         var removed = Array.prototype[func].call(this);
         this.trigger('remove change', removed);
 
-        if ( isModelOrCollection(removed) ) {
-            removed.trigger('removed', this);
-        }
-
         return removed;
     }
 
@@ -286,10 +282,6 @@
                 [].splice.call(this, index, 1);
                 removed = true;
                 this.trigger('remove change', elem);
-            }
-
-            if ( removed && isModelOrCollection(elem) ) {
-                elem.trigger('removed', this);
             }
         },
 
