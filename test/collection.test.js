@@ -227,5 +227,70 @@ describe('Runway.Collection', function(){
         list.add({ id: 80 });
         list.add({ id: 90 });
     });
+
+    it('should allow splicing', function() {
+        var list = new Items([
+            { id: 50 }, { id: 60 }, { id: 70 }, { id: 80 }, { id: 90 } ]);
+
+        assert.deepEqual(
+            list.splice(1, 2, { id: 51 }, { id: 52 }),
+            [ new Item({ id: 60 }), new Item({id: 70}) ]
+        );
+
+        assert.deepEqual( list, new Items([
+            { id: 50 }, { id: 51 }, { id: 52 }, { id: 80 }, { id: 90 } ])
+        );
+
+        assert.deepEqual( list.splice(3, 1), [ new Item({ id: 80 }) ] );
+
+        assert.deepEqual( list, new Items([
+            { id: 50 }, { id: 51 }, { id: 52 }, { id: 90 } ])
+        );
+
+        assert.deepEqual( list.splice(3, 0, { id: 53 }), [] );
+
+        assert.deepEqual( list, new Items([
+            { id: 50 }, { id: 51 }, { id: 52 }, { id: 53 }, { id: 90 } ])
+        );
+    });
+
+    it('should trigger remove events when splicing', function(done) {
+        var one = new Item({ id: 60 });
+        var two = new Item({ id: 70 });
+        var list = new Items([ { id: 50 }, one, two, { id: 80 } ]);
+
+        var finish = _.after(4, done);
+
+        list.on('remove change', function ( value ) {
+            assert.isTrue(value === one || value === two);
+            finish();
+        });
+
+        list.on('add', function () {
+            assert.fail("Should not be called");
+        });
+
+        list.splice(1, 2);
+    });
+
+    it('should trigger add events when splicing', function(done) {
+        var one = new Item({ id: 60 });
+        var two = new Item({ id: 70 });
+        var list = new Items([ { id: 50 }, { id: 80 } ]);
+
+        var finish = _.after(4, done);
+
+        list.on('add change', function ( value ) {
+            assert.isTrue(value === one || value === two);
+            finish();
+        });
+
+        list.on('remove', function () {
+            assert.fail("Should not be called");
+        });
+
+        list.splice(1, 0, one, two);
+    });
+
 });
 

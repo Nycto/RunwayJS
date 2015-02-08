@@ -303,9 +303,36 @@
         /** Override to handle events */
         reverse: partial(sorter, 'reverse'),
 
-        // Splice is... complicated. Clear it out right now to simplify how
-        // events need to be handled.
-        splice: null,
+        /** Override to handle events */
+        splice: function ( start, deleteCount ) {
+
+            // Make sure all new elements are cast to the model
+            var toAdd = [].slice.call(arguments, 2).map(function (value) {
+                if ( this.__model && !(value instanceof this.__model) ) {
+                    return new this.__model(value);
+                }
+                else {
+                    return value;
+                }
+            }, this);
+
+            var removed = [].splice.apply(
+                this, [start, deleteCount].concat(toAdd));
+
+            if ( removed.length > 0 ) {
+                removed.forEach(function (elem) {
+                    this.trigger('remove change', elem);
+                }, this);
+            }
+
+            if (toAdd.length > 0) {
+                toAdd.forEach(function (elem) {
+                    this.trigger('add change', elem);
+                }, this);
+            }
+
+            return removed;
+        },
 
         /** Applies a callback to */
         eachAndAdded: function (callback) {
