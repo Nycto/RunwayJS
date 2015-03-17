@@ -76,6 +76,13 @@
         return removed;
     }
 
+    /** Renames a function based on another function */
+    function rename( target, source ) {
+        if ( source && source.name ) {
+            target.displayName = source.name;
+        }
+    }
+
 
     /**
      * A difficult-to-believe, but optimized internal dispatch function for
@@ -251,6 +258,8 @@
 
         extend(options, Model.prototype, isClassMethod);
 
+        rename(Model, options.initialize);
+
         return Model;
     }
 
@@ -402,9 +411,16 @@
             (values || []).forEach(this.push, this);
         }
 
+        // Change the name of the class to match the constructor
+        if ( options.initialize && options.initialize.name ) {
+            Collection.displayName = options.initialize.name;
+        }
+
         Collection.prototype = new BaseCollection();
 
         extend(options, Collection.prototype, isClassMethod);
+
+        rename(Collection, options.initialize);
 
         return Collection;
     }
