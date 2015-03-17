@@ -114,6 +114,23 @@ describe('Runway.Model', function(){
         inner.add("test");
     });
 
+    it('Should trigger changes for nested collections', function(done) {
+        var Item = runway.model();
+        var List = runway.collection({ model: Item });
+
+        var toPush = new Item({ pushed: true });
+
+        var inner = new List([ {}, {} ]);
+        var outer = new Item({ inside: inner });
+
+        outer.on('change:inside', function (value) {
+            assert.strictEqual(value, toPush);
+            done();
+        });
+
+        inner.push( toPush );
+    });
+
     it('shouldnt trigger events when a set value is the same', function() {
         var Item = runway.model();
         var elem = new Item({ id: 3.1415 });

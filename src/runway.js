@@ -159,6 +159,37 @@
         })
     });
 
+    /**
+     * Subscribes to changes on a value
+     * @return function Returns a function for unsubscribing
+     */
+    function subscribe ( that, key, value ) {
+
+        // Triggers a 'sub' event when a nested value changes
+        var triggerSubChange = that.trigger.bind(that, 'sub:change');
+
+        // Triggers a change event
+        var triggerChange = that.trigger.bind(that, 'change:' + key);
+
+        // If the new object is a collection, treat push/pop
+        // operations as changes directly on this key
+        if ( value instanceof BaseCollection ) {
+            value.on('change', triggerChange);
+        }
+        else if ( isModelOrCollection(value) ) {
+            value.on('change sub:change', triggerSubChange);
+        }
+
+        // Return a function that will remove the events we just attached
+        return function unsubscribe() {
+            if ( value instanceof BaseCollection ) {
+                value.off('change', triggerChange);
+            }
+            else if ( isModelOrCollection(value) ) {
+                value.off('change sub:change', triggerSubChange);
+            }
+        };
+    }
 
     /** Binds a property to 'this' and sets up watches */
     function setProperty(value, key) {
@@ -168,12 +199,7 @@
             return;
         }
 
-        // Triggers an event when a nested value changes
-        var triggerChange = this.trigger.bind(this, 'sub:change');
-
-        if ( isModelOrCollection(value) ) {
-            value.on('change sub:change', triggerChange);
-        }
+        var unsubscribe = subscribe(this, key, value);
 
         Object.defineProperty(this, key, {
             enumerable: true,
@@ -186,17 +212,11 @@
                 var oldValue = value;
                 value = newValue;
 
-                if ( isModelOrCollection(oldValue) ) {
-                    oldValue.off('change sub:change', triggerChange);
-                }
+                unsubscribe();
 
-                this.trigger(
-                    'change:' + key, value, { old: oldValue, key: key }
-                );
+                this.trigger('change:' + key, value, {old: oldValue, key: key});
 
-                if ( isModelOrCollection(newValue) ) {
-                    newValue.on('change sub:change', triggerChange);
-                }
+                unsubscribe = subscribe(this, key, value);
             },
             get: function () {
                 return value;
