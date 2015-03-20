@@ -116,6 +116,23 @@ describe('Runway.eventify', function(){
         obj.trigger('event');
     });
 
+    it('Allow listening to all events', function(done) {
+        var obj = runway.eventify({});
+
+        var sequence = [ 'one', 'two', 'three', 'four' ];
+        obj.on('*', function (value) {
+            assert.equal(value, sequence.shift());
+            if ( sequence.length === 0 ) {
+                done();
+            }
+        });
+
+        obj.trigger('first', 'one');
+        obj.trigger('second', 'two');
+        obj.trigger('third', 'three');
+        obj.trigger('fourth', 'four');
+    });
+
 });
 
 

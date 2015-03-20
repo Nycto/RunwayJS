@@ -83,6 +83,10 @@
      * was lifted almost directly from Backbone.
      */
     function triggerEvents(callbacks, bind, args) {
+        if ( !callbacks ) {
+            return;
+        }
+
         var i = -1;
         var len = callbacks.length;
 
@@ -153,11 +157,11 @@
             var parts = event.split(":");
             while ( parts.length ) {
                 var eventName = parts.join(":");
-                if ( map[eventName] ) {
-                    triggerEvents(map[eventName], this, args);
-                }
+                triggerEvents(map[eventName], this, args);
                 parts.pop();
             }
+
+            triggerEvents(map['*'], this, args);
         }),
 
         /** Subscribes to an event on this model */
