@@ -98,6 +98,24 @@ describe('Runway.eventify', function(){
         obj.trigger('one');
     });
 
+    it('Removing an observer mid-event shoulld work', function(done) {
+        var obj = runway.eventify({});
+
+        var toRemove = function () {
+            assert.fail("Should not have been called");
+        };
+
+        obj.on('event', function () {
+            obj.off('event', toRemove);
+        });
+
+        obj.on('event', toRemove);
+
+        obj.on('event', done);
+
+        obj.trigger('event');
+    });
+
 });
 
 

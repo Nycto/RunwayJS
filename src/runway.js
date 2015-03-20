@@ -97,16 +97,32 @@
 
         switch (args.length) {
             case 0:
-                while (++i < len) { callbacks[i].call(bind); }
+                while (++i < len) {
+                    if ( callbacks[i] ) {
+                        callbacks[i].call(bind);
+                    }
+                }
                 return;
             case 1:
-                while (++i < len) { callbacks[i].call(bind, a1); }
+                while (++i < len) {
+                    if ( callbacks[i] ) {
+                        callbacks[i].call(bind, a1);
+                    }
+                }
                 return;
             case 2:
-                while (++i < len) { callbacks[i].call(bind, a1, a2); }
+                while (++i < len) {
+                    if ( callbacks[i] ) {
+                        callbacks[i].call(bind, a1, a2);
+                    }
+                }
                 return;
             default:
-                while (++i < len) { callbacks[i].apply(bind, args); }
+                while (++i < len) {
+                    if ( callbacks[i] ) {
+                        callbacks[i].apply(bind, args);
+                    }
+                }
                 return;
         }
     }
