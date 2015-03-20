@@ -136,10 +136,11 @@
         args.unshift( this.__events );
         args.unshift( null );
 
-        events.split(' ').forEach(function (event) {
-            args[0] = event;
+        events = events.split(' ');
+        for (var i = 0; i < events.length; i++) {
+            args[0] = events[i];
             inner.apply(this, args);
-        }, this);
+        }
     }
 
     /** Adds event support to a an object */
