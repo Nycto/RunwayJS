@@ -292,5 +292,11 @@ describe('Runway.Collection', function(){
         list.splice(1, 0, one, two);
     });
 
+    it('Encode to a JSON array', function() {
+        var List = runway.collection();
+        var ls = new List([ 1, 2, 3 ]);
+        assert.equal( JSON.stringify(ls), "[1,2,3]" );
+    });
+
 });
 

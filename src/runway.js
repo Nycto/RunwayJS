@@ -314,6 +314,9 @@
         /** Converts this object to an array */
         toArray: [].slice,
 
+        /** Convert to an array when JSON encoding */
+        toJSON: [].slice,
+
         /** Adds a value */
         add: partial(adder, 'push'),
 
@@ -378,6 +381,7 @@
             this.forEach(callback, this);
             this.on('add', callback);
         }
+
     }, BaseCollection.prototype);
 
 
